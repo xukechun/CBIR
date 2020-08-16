@@ -62,5 +62,5 @@ def retrieve_object(search_engine, demo_im, demo_bb, nbr_results):
 
 if __name__ == '__main__':
     search_engine = create_SearchEngine()
-    demo_im, demo_bb = catch_BoundingBox(13)
-    retrieve_object(search_engine, demo_im, demo_bb, 6)
+    # demo_im, demo_bb = catch_BoundingBox(13)
+    # retrieve_object(search_engine, demo_im, demo_bb, 6)
