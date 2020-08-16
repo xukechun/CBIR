@@ -3,25 +3,26 @@
 # Created on June 14th, 2020
 
 import pickle
-from localdescriptors import sift
+# from localdescriptors import sift
 from imagesearch import imagesearch
-from PCV.geometry import homography
+# from PCV.geometry import homography
 from tools.imtools import get_imlist
 from PIL import Image
 import matplotlib.pyplot as plt
 from VLAD_lib import *
 from bof_svm import *
+from bof_vgg import *
 import argparse
 import glob
 
 # parser
 ap = argparse.ArgumentParser()
 ap.add_argument("-q", "--query", required=True,
-                help="Index of a query image(BOF and VLAD within 500 while BOF_SVM within 300)")
+                help="Index of a query image(BOF and VLAD within 500, BOF_SVM within 300 while BOF_VGG within 50)")
 ap.add_argument("-r", "--retrieve", required=True,
                 help="number of images to retrieve")
 ap.add_argument("-m", "--method", required=True,
-                help="method to use(0:BOF,1:VLAD,2:BOF_SVM)")
+                help="method to use(0:BOF,1:VLAD,2:BOF_SVM,3:BOF_VGG)")
 
 args = vars(ap.parse_args())
 
@@ -35,7 +36,8 @@ IMAGE_PATH = 'ukbench500/'
 BOF = 0
 VLAD = 1
 BOF_SVM = 2
-METHOD = ['BOF', 'VLAD', 'BOF_SVM']
+BOF_VGG = 3
+METHOD = ['BOF', 'VLAD', 'BOF_SVM', 'BOF_VGG']
 FEATURE_METHOD = [sift_process, surf_process]
 VD_PATH = ['visdict_sift.pickle', 'visdict_surf.pickle']
 VLAD_PATH = ['vlad_dict_sift.pickle', 'vlad_dict_surf.pickle']
@@ -65,13 +67,13 @@ class Search_images:
             voc = pickle.load(f)
         src = imagesearch.Searcher(Database_path, voc)
         return src
-
-    def load_query_feature(self):
-        # load image features for query image
-        q_locs, q_descr = sift.read_features_from_file(self.featlist[q_ind])
-        q_locs = np.array(q_locs)
-        fp = homography.make_homog(q_locs[:, :2].T)
-        return q_descr, fp
+    #
+    # def load_query_feature(self):
+    #     # load image features for query image
+    #     q_locs, q_descr = sift.read_features_from_file(self.featlist[q_ind])
+    #     q_locs = np.array(q_locs)
+    #     fp = homography.make_homog(q_locs[:, :2].T)
+    #     return q_descr, fp
 
     def plot_results(self, res, match_scores):
         # show the top six match images
@@ -116,41 +118,41 @@ class Search_images:
                 ax.set_title('predicted class is ' + str(class_name), fontsize=10)
         plt.show()
 
-    def bof_image_retrieval(self):
-        # load vocabulary and query feature
-        src = self.image_searcher()
-        q_descr, fp = self.load_query_feature()
-        # RANSAC model for homography fitting
-        model = homography.RansacModel()
-        rank = {}
-        # query
-        match_scores = [w[0] for w in src.query(self.imlist[q_ind])[:nbr_results]]
-        res_reg = [w[1] for w in src.query(self.imlist[q_ind])[:nbr_results]]
-        print('top matches:', res_reg)
-        self.plot_results(res_reg[:6], match_scores[:6])
-        if self.bof_rearrange:
-            # load image features for result
-            for ndx in res_reg[1:]:
-                locs, descr = sift.read_features_from_file(self.featlist[ndx])
-                # get matches
-                matches = sift.match(q_descr, descr)
-                ind = matches.nonzero()[0]
-                ind2 = matches[ind]
-                locs = np.array(locs)
-                tp = homography.make_homog(locs[:, :2].T)
-                # compute homography, count inliers.
-                try:
-                    H, inliers = homography.H_from_ransac(fp[:, ind], tp[:, ind2], model, match_theshold=4)
-                except:
-                    inliers = []
-                # store inlier count
-                rank[ndx] = len(inliers)
-                # sort dictionary to get the most inliers first
-                sorted_rank = sorted(rank.items(), key=lambda t: t[1], reverse=True)
-                res_geom = [res_reg[0]] + [s[0] for s in sorted_rank]
-            # print('top matches (homography):', res_geom)
-            # show results
-            self.plot_results(res_geom[:6], match_scores[:6])
+    # def bof_image_retrieval(self):
+    #     # load vocabulary and query feature
+    #     src = self.image_searcher()
+    #     q_descr, fp = self.load_query_feature()
+    #     # RANSAC model for homography fitting
+    #     model = homography.RansacModel()
+    #     rank = {}
+    #     # query
+    #     match_scores = [w[0] for w in src.query(self.imlist[q_ind])[:nbr_results]]
+    #     res_reg = [w[1] for w in src.query(self.imlist[q_ind])[:nbr_results]]
+    #     print('top matches:', res_reg)
+    #     self.plot_results(res_reg[:6], match_scores[:6])
+    #     if self.bof_rearrange:
+    #         # load image features for result
+    #         for ndx in res_reg[1:]:
+    #             locs, descr = sift.read_features_from_file(self.featlist[ndx])
+    #             # get matches
+    #             matches = sift.match(q_descr, descr)
+    #             ind = matches.nonzero()[0]
+    #             ind2 = matches[ind]
+    #             locs = np.array(locs)
+    #             tp = homography.make_homog(locs[:, :2].T)
+    #             # compute homography, count inliers.
+    #             try:
+    #                 H, inliers = homography.H_from_ransac(fp[:, ind], tp[:, ind2], model, match_theshold=4)
+    #             except:
+    #                 inliers = []
+    #             # store inlier count
+    #             rank[ndx] = len(inliers)
+    #             # sort dictionary to get the most inliers first
+    #             sorted_rank = sorted(rank.items(), key=lambda t: t[1], reverse=True)
+    #             res_geom = [res_reg[0]] + [s[0] for s in sorted_rank]
+    #         # print('top matches (homography):', res_geom)
+    #         # show results
+    #         self.plot_results(res_geom[:6], match_scores[:6])
 
     def vlad_image_retrieval(self):
         path = get_filename(IMAGE_PATH, q_ind)
@@ -182,13 +184,21 @@ class Search_images:
         # show results
         self.plot_svm_results(image_path, prediction[0])
 
+    def bof_vgg_image_retrieval(self):
+        search_engine = create_SearchEngine()
+        demo_im, demo_bb = catch_BoundingBox(q_ind)
+        retrieve_object(search_engine, demo_im, demo_bb, nbr_results)
+
+
     def search_similar_images(self):
         if self.method == BOF:
             self.bof_image_retrieval()
         elif self.method == VLAD:
             self.vlad_image_retrieval()
-        else:
+        elif self.method == BOF_SVM:
             self.bof_svm_image_retrieval()
+        else:
+            self.bof_vgg_image_retrieval()
 
 
 if __name__ == '__main__':
