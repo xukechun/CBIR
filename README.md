@@ -9,6 +9,8 @@
 
 - Python3
 
+- cuda10.1, pytorch1.2.0, torchvision
+
 - You can quickly install/update these dependencies by running the following (replace `pip` with `pip3` for Python 3):
 
   ```
