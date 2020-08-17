@@ -3,9 +3,9 @@
 # Created on June 14th, 2020
 
 import pickle
-# from localdescriptors import sift
+from localdescriptors import sift
 from imagesearch import imagesearch
-# from PCV.geometry import homography
+from PCV.geometry import homography
 from tools.imtools import get_imlist
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -67,13 +67,13 @@ class Search_images:
             voc = pickle.load(f)
         src = imagesearch.Searcher(Database_path, voc)
         return src
-    #
-    # def load_query_feature(self):
-    #     # load image features for query image
-    #     q_locs, q_descr = sift.read_features_from_file(self.featlist[q_ind])
-    #     q_locs = np.array(q_locs)
-    #     fp = homography.make_homog(q_locs[:, :2].T)
-    #     return q_descr, fp
+    
+    def load_query_feature(self):
+        # load image features for query image
+        q_locs, q_descr = sift.read_features_from_file(self.featlist[q_ind])
+        q_locs = np.array(q_locs)
+        fp = homography.make_homog(q_locs[:, :2].T)
+        return q_descr, fp
 
     def plot_results(self, res, match_scores):
         # show the top six match images
@@ -118,41 +118,41 @@ class Search_images:
                 ax.set_title('predicted class is ' + str(class_name), fontsize=10)
         plt.show()
 
-    # def bof_image_retrieval(self):
-    #     # load vocabulary and query feature
-    #     src = self.image_searcher()
-    #     q_descr, fp = self.load_query_feature()
-    #     # RANSAC model for homography fitting
-    #     model = homography.RansacModel()
-    #     rank = {}
-    #     # query
-    #     match_scores = [w[0] for w in src.query(self.imlist[q_ind])[:nbr_results]]
-    #     res_reg = [w[1] for w in src.query(self.imlist[q_ind])[:nbr_results]]
-    #     print('top matches:', res_reg)
-    #     self.plot_results(res_reg[:6], match_scores[:6])
-    #     if self.bof_rearrange:
-    #         # load image features for result
-    #         for ndx in res_reg[1:]:
-    #             locs, descr = sift.read_features_from_file(self.featlist[ndx])
-    #             # get matches
-    #             matches = sift.match(q_descr, descr)
-    #             ind = matches.nonzero()[0]
-    #             ind2 = matches[ind]
-    #             locs = np.array(locs)
-    #             tp = homography.make_homog(locs[:, :2].T)
-    #             # compute homography, count inliers.
-    #             try:
-    #                 H, inliers = homography.H_from_ransac(fp[:, ind], tp[:, ind2], model, match_theshold=4)
-    #             except:
-    #                 inliers = []
-    #             # store inlier count
-    #             rank[ndx] = len(inliers)
-    #             # sort dictionary to get the most inliers first
-    #             sorted_rank = sorted(rank.items(), key=lambda t: t[1], reverse=True)
-    #             res_geom = [res_reg[0]] + [s[0] for s in sorted_rank]
-    #         # print('top matches (homography):', res_geom)
-    #         # show results
-    #         self.plot_results(res_geom[:6], match_scores[:6])
+    def bof_image_retrieval(self):
+        # load vocabulary and query feature
+        src = self.image_searcher()
+        q_descr, fp = self.load_query_feature()
+        # RANSAC model for homography fitting
+        model = homography.RansacModel()
+        rank = {}
+        # query
+        match_scores = [w[0] for w in src.query(self.imlist[q_ind])[:nbr_results]]
+        res_reg = [w[1] for w in src.query(self.imlist[q_ind])[:nbr_results]]
+        print('top matches:', res_reg)
+        self.plot_results(res_reg[:6], match_scores[:6])
+        if self.bof_rearrange:
+            # load image features for result
+            for ndx in res_reg[1:]:
+                locs, descr = sift.read_features_from_file(self.featlist[ndx])
+                # get matches
+                matches = sift.match(q_descr, descr)
+                ind = matches.nonzero()[0]
+                ind2 = matches[ind]
+                locs = np.array(locs)
+                tp = homography.make_homog(locs[:, :2].T)
+                # compute homography, count inliers.
+                try:
+                    H, inliers = homography.H_from_ransac(fp[:, ind], tp[:, ind2], model, match_theshold=4)
+                except:
+                    inliers = []
+                # store inlier count
+                rank[ndx] = len(inliers)
+                # sort dictionary to get the most inliers first
+                sorted_rank = sorted(rank.items(), key=lambda t: t[1], reverse=True)
+                res_geom = [res_reg[0]] + [s[0] for s in sorted_rank]
+            # print('top matches (homography):', res_geom)
+            # show results
+            self.plot_results(res_geom[:6], match_scores[:6])
 
     def vlad_image_retrieval(self):
         path = get_filename(IMAGE_PATH, q_ind)
